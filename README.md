@@ -37,19 +37,26 @@ GET /api/1
 
 ## 🧠 Features
 
-  **Caching	Uses Caffeine, 5-minute expiration*
-  **Rate Limiting	Token Bucket (5 requests / minute)*
-  **DB	PostgresSQL*
-  **RESTful API	Simple GET endpoint*
+  *Caching	Uses Caffeine, 5-minute expiration*
+  
+  *Rate Limiting	Token Bucket (5 requests / minute)*
+  
+  *DB	PostgresSQL*
+  
+  *RESTful API	Simple GET endpoint*
 
 ---
 
 ## 🛠️ Technologies Used
 
   *Spring Boot*
+  
   *Spring Data JPA*
+  
   *Caffeine Cache*
+  
   *PostgresSQL Database*
+  
   *Maven*
 
 --- 
