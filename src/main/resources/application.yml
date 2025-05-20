@@ -1,0 +1,20 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ratelimiterdb
+    username: postgres
+    password: root
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  cache:
+    type: caffeine
+    cache-names: myCache
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=10m
+server:
+  port: 8080
