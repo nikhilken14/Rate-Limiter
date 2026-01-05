@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Rate-Limited API Dashboard</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-top: 8px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .stat-card h3 {
+            font-size: 0.85em;
+            color: #777;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 2.4em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .content-section {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            color: #333;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 22px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.25s;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+        }
+
+        .btn-success { background: #27ae60; }
+        .btn-danger { background: #e74c3c; }
+        .refresh-btn { background: #3498db; }
+
+        .btn-small {
+            padding: 8px 14px;
+            font-size: 0.85em;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            font-weight: 500;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+        }
+
+        input:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+
+        .student-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .student-table th {
+            background: #667eea;
+            color: white;
+            padding: 14px;
+            text-align: left;
+        }
+
+        .student-table td {
+            padding: 14px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .student-table tr:hover {
+            background: #f8f9ff;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 10px;
+        }
+
+        .alert {
+            display: none;
+            padding: 14px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert.show { display: block; }
+        .alert-success { background: #d4edda; color: #155724; }
+        .alert-error { background: #f8d7da; color: #721c24; }
+
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #667eea;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal.active { display: flex; }
+
+        .modal-content {
+            background: white;
+            padding: 35px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        .close-btn {
+            float: right;
+            font-size: 1.4em;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <div class="header">
+        <h1>🎓 Student Management Dashboard</h1>
+        <p class="subtitle">Rate-Limited API with Caffeine Cache</p>
+    </div>
+
+    <div id="alert" class="alert"></div>
+
+    <!-- STATS -->
+    <div class="stats-grid">
+        <div class="stat-card"><h3>Total Students</h3><div class="stat-value" id="totalStudents">0</div></div>
+        <div class="stat-card"><h3>Cache Hit Rate</h3><div class="stat-value" id="cacheHitRate">0%</div></div>
+        <div class="stat-card"><h3>Total Requests</h3><div class="stat-value" id="totalRequests">0</div></div>
+        <div class="stat-card"><h3>Blocked Requests</h3><div class="stat-value" id="blockedRequests">0</div></div>
+    </div>
+
+    <!-- FIND STUDENT -->
+    <div class="content-section">
+        <div class="section-header"><h2>Find Student by ID</h2></div>
+
+        <div style="display:flex; gap:15px;">
+            <div class="form-group" style="flex:1;">
+                <label>Student ID</label>
+                <input type="number" id="searchStudentId" placeholder="Enter Student ID">
+            </div>
+            <button class="btn" onclick="getStudentById()">🔍 Search</button>
+        </div>
+
+        <div id="studentDetailCard" style="display:none; margin-top:20px;">
+            <div class="stat-card">
+                <h3>Student Details</h3>
+                <p><strong>ID:</strong> <span id="detailId"></span></p>
+                <p><strong>Name:</strong> <span id="detailName"></span></p>
+                <p><strong>Result:</strong> <span id="detailResult"></span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- STUDENT TABLE -->
+    <div class="content-section">
+        <div class="section-header">
+            <h2>Student Records</h2>
+            <div style="display:flex; gap:10px;">
+                <button class="btn refresh-btn" onclick="loadStudents()">🔄 Refresh</button>
+                <button class="btn btn-success" onclick="openAddModal()">➕ Add</button>
+                <button class="btn btn-danger" onclick="clearCache()">🗑️ Clear Cache</button>
+            </div>
+        </div>
+
+        <div id="studentsLoading" class="loading">Loading students...</div>
+
+        <table class="student-table" id="studentsTable" style="display:none;">
+            <thead>
+            <tr><th>ID</th><th>Name</th><th>Result</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="studentsBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- MODAL -->
+<div id="studentModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeModal()">×</span>
+        <h2 id="modalTitle">Add Student</h2>
+        <form id="studentForm">
+            <input type="hidden" id="studentId">
+            <div class="form-group"><label>Name</label><input id="studentName" required></div>
+            <div class="form-group"><label>Result</label><input id="studentResult" required></div>
+            <button class="btn btn-success" style="width:100%">Save</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    const API_BASE = 'http://localhost:8080/api';
+    let isEditing = false;
+
+    /* ---------- CORE FUNCTIONS ---------- */
+
+    async function loadStats() {
+        try {
+            const r = await fetch(`${API_BASE}/stats`);
+            const d = await r.json();
+            totalStudents.textContent = d.totalStudents || 0;
+            cacheHitRate.textContent = d.cacheHitRate || '0%';
+            totalRequests.textContent = d.totalRequests || 0;
+            blockedRequests.textContent = d.blockedRequests || 0;
+        } catch {}
+    }
+
+    async function loadStudents() {
+        studentsLoading.style.display = 'block';
+        studentsTable.style.display = 'none';
+        try {
+            const r = await fetch(`${API_BASE}/students`);
+            if (r.status === 429) return showAlert('Rate limit exceeded', 'error');
+            const students = await r.json();
+            studentsBody.innerHTML = '';
+
+            if (students.length === 0) {
+                studentsBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No students found</td></tr>`;
+            }
+
+            students.forEach(s => {
+                studentsBody.innerHTML += `
+                    <tr>
+                        <td>${s.id}</td>
+                        <td>${s.name}</td>
+                        <td>${s.result}</td>
+                        <td class="action-btns">
+                            <button class="btn btn-small" onclick="editStudent(${s.id})">✏️</button>
+                            <button class="btn btn-small btn-danger" onclick="deleteStudent(${s.id})">🗑️</button>
+                        </td>
+                    </tr>`;
+            });
+
+            studentsLoading.style.display = 'none';
+            studentsTable.style.display = 'table';
+            loadStats();
+        } catch (e) {
+            showAlert(e.message, 'error');
+        }
+    }
+
+    /* ---------- GET BY ID ---------- */
+
+    async function getStudentById() {
+        const id = searchStudentId.value;
+        studentDetailCard.style.display = 'none';
+        if (!id) return showAlert('Enter a Student ID', 'error');
+
+        try {
+            const r = await fetch(`${API_BASE}/students/${id}`);
+            if (r.status === 404) return showAlert('Student not found', 'error');
+            if (r.status === 429) return showAlert('Rate limit exceeded', 'error');
+
+            const s = await r.json();
+            detailId.textContent = s.id;
+            detailName.textContent = s.name;
+            detailResult.textContent = s.result;
+            studentDetailCard.style.display = 'block';
+            showAlert('Student retrieved successfully', 'success');
+            loadStats();
+        } catch (e) {
+            showAlert(e.message, 'error');
+        }
+    }
+
+    /* ---------- CRUD ---------- */
+
+    studentForm.onsubmit = async e => {
+        e.preventDefault();
+        const student = { name: studentName.value, result: studentResult.value };
+        const url = isEditing ? `${API_BASE}/students/${studentId.value}` : `${API_BASE}/students`;
+        const method = isEditing ? 'PUT' : 'POST';
+
+        const r = await fetch(url, { method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(student)});
+        if (r.status === 429) return showAlert('Rate limit exceeded', 'error');
+
+        showAlert('Student saved', 'success');
+        closeModal();
+        loadStudents();
+    };
+
+    async function editStudent(id) {
+        const r = await fetch(`${API_BASE}/students/${id}`);
+        const s = await r.json();
+        studentId.value = s.id;
+        studentName.value = s.name;
+        studentResult.value = s.result;
+        modalTitle.textContent = 'Edit Student';
+        isEditing = true;
+        studentModal.classList.add('active');
+    }
+
+    async function deleteStudent(id) {
+        if (!confirm('Delete student?')) return;
+        const r = await fetch(`${API_BASE}/students/${id}`, { method:'DELETE' });
+        if (r.ok) loadStudents();
+    }
+
+    async function clearCache() {
+        await fetch(`${API_BASE}/students/cache/clear`, { method:'DELETE' });
+        showAlert('Cache cleared', 'success');
+        loadStats();
+    }
+
+    /* ---------- UI ---------- */
+
+    function openAddModal() {
+        studentForm.reset();
+        isEditing = false;
+        modalTitle.textContent = 'Add Student';
+        studentModal.classList.add('active');
+    }
+
+    function closeModal() {
+        studentModal.classList.remove('active');
+    }
+
+    function showAlert(msg, type) {
+        alert.textContent = msg;
+        alert.className = `alert alert-${type} show`;
+        setTimeout(() => alert.classList.remove('show'), 4000);
+    }
+
+    loadStudents();
+    setInterval(loadStats, 5000);
+</script>
+
+</body>
+</html>

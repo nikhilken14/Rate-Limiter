@@ -6,22 +6,31 @@ import org.springframework.cache.caffeine.CaffeineCache;
 import org.springframework.cache.support.SimpleCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.cache.annotation.EnableCaching;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Configuration
+@EnableCaching
 public class CacheConfig {
 
     @Bean
     public CacheManager cacheManager() {
-        CaffeineCache studentCache = new CaffeineCache("studentCache",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(5, TimeUnit.MINUTES)
-                        .build());
+
+        CaffeineCache studentsCache =
+                new CaffeineCache(
+                        "students",
+                        Caffeine.newBuilder()
+                                .expireAfterWrite(5, TimeUnit.MINUTES)
+                                .maximumSize(1000)
+                                .recordStats()
+                                .build()
+                );
 
         SimpleCacheManager manager = new SimpleCacheManager();
-        manager.setCaches(List.of(studentCache));
+        manager.setCaches(List.of(studentsCache));
         return manager;
     }
 }
+
